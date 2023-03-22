@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 
-import { User } from "./interfaces/User";
+import { User } from "./user.entity";
 import { UserService } from "./user.service";
 import { UserUpdateExchangesListDto } from "./dto/user-update-exchanges-list.dto";
 import { UserGetDto } from "./dto/user-get.dto";
