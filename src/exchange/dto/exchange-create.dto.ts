@@ -10,7 +10,7 @@ export class ExchangeCreateDto {
 
   @IsExchangeApiInfo({
     message:
-      "Incorrect exchangeApiInfo. Example: { 'baseUri': 'https://my-api.com/', 'useCases': { 'priceBySymbol': { 'path': 'some/useCase', 'headers': 'header', 'symbolPattern': $-$ } } }",
+      "Incorrect exchangeApiInfo. Example: { 'baseUri': 'https://my-api.com/', 'useCases': { 'priceBySymbol': { 'path': 'some/useCase', 'symbolQuery': 'symbol', 'symbolPattern': $-$ } } }",
   })
   @Type(() => ExchangeApiInfo)
   exchangeApiInfo: ExchangeApiInfo;

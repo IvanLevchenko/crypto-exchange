@@ -3,7 +3,7 @@ export abstract class ExchangeApiInfo {
   useCases: {
     priceBySymbol: {
       path: string;
-      symbolHeader?: any;
+      symbolQuery: string;
       symbolPattern: string;
     };
   };

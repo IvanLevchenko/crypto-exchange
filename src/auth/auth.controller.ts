@@ -4,7 +4,7 @@ import { AuthService } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
 import { AuthorizationResult } from "../common/types/authorization-result";
-import { User } from "../user/interfaces/User";
+import { User } from "../user/user.entity";
 
 @Controller("auth")
 export class AuthController {
