@@ -5,6 +5,8 @@ import { HttpService } from "nestjs-http-promise";
 
 import { Exchange } from "../exchange/exchange.entity";
 import { AppGetRatesDto } from "./dto/app-get-rates.dto";
+import { AppEstimateDto } from "./dto/app-estimate.dto";
+import { CurrencyPriceData } from "./interfaces/currency-price-data";
 
 import { Constants } from "../constants";
 import Exceptions from "./exceptions/app-get-rates.exceptions";
@@ -18,7 +20,7 @@ export class AppService {
   ) {}
 
   private getQueryParamsByPattern(
-    dtoIn: AppGetRatesDto,
+    currencies: AppGetRatesDto,
     symbolQuery: string,
     symbolPattern: string,
   ) {
@@ -37,12 +39,12 @@ export class AppService {
       if (i === 0) {
         params[symbolQuery] = symbolPattern.replace(
           symbolForCryptoCode,
-          dtoIn.baseCurrency,
+          currencies.baseCurrency,
         );
       } else {
         params[symbolQuery] = params[symbolQuery].replace(
           symbolForCryptoCode,
-          dtoIn.quoteCurrency,
+          currencies.quoteCurrency,
         );
       }
     }
@@ -50,16 +52,66 @@ export class AppService {
     return params;
   }
 
+  private async makeRequestWithSwitchedCode(
+    currencies: AppGetRatesDto,
+    url: string,
+    symbolQuery: string,
+    symbolPattern: string,
+  ) {
+    const switchedCurrencies = {
+      baseCurrency: currencies.quoteCurrency,
+      quoteCurrency: currencies.baseCurrency,
+    };
+    const params = this.getQueryParamsByPattern(
+      switchedCurrencies,
+      symbolQuery,
+      symbolPattern,
+    );
+
+    let currencyInfo;
+    try {
+      currencyInfo = await this.httpService.get(url.toString(), { params });
+    } catch (e) {
+      throw new Exceptions.GetRatesFailed({ ...currencies });
+    }
+
+    return currencyInfo;
+  }
+
+  private getRate(rate: string, switched: boolean) {
+    if (!switched) {
+      return rate;
+    }
+
+    return String((1 / Number(rate)).toPrecision());
+  }
+
   async getRates(
     dtoIn: AppGetRatesDto,
   ): Promise<Awaited<object[]> | undefined> {
     const exchanges = await this.exchangeRepository.find();
+    const currencies = {
+      baseCurrency: dtoIn.baseCurrency,
+      quoteCurrency: dtoIn.quoteCurrency,
+    };
+
+    const rates: CurrencyPriceData[] = [];
+    let switchedCodes = false;
 
     if (!exchanges) {
       return;
     }
 
-    const pendingRequests = exchanges.map((exchange) => {
+    if (dtoIn.quoteCurrency === dtoIn.baseCurrency) {
+      throw new Exceptions.CurrencyCodesAreEqual({ ...dtoIn });
+    }
+
+    if (!Constants.QuoteCurrenciesList.includes(dtoIn.quoteCurrency)) {
+      currencies.baseCurrency = dtoIn.quoteCurrency;
+      currencies.quoteCurrency = dtoIn.baseCurrency;
+    }
+
+    for (const exchange of exchanges) {
       const url = new URL(exchange.exchangeApiInfo.baseUri);
       const priceBySymbolData = exchange.exchangeApiInfo.useCases.priceBySymbol;
       const path = priceBySymbolData.path;
@@ -67,30 +119,44 @@ export class AppService {
       url.pathname += url.pathname.at(-1) === "/" ? path : `/${path}`;
 
       const params = this.getQueryParamsByPattern(
-        dtoIn,
+        currencies,
         priceBySymbolData.symbolQuery,
         priceBySymbolData.symbolPattern,
       );
 
-      return this.httpService.get(url.toString(), { params });
-    });
+      let currencyInfo;
+      try {
+        currencyInfo = await this.httpService.get(url.toString(), { params });
+        if (!currencyInfo.data.data && !currencyInfo.data?.price) {
+          currencyInfo = await this.makeRequestWithSwitchedCode(
+            currencies,
+            url.toString(),
+            priceBySymbolData.symbolQuery,
+            priceBySymbolData.symbolPattern,
+          );
+          switchedCodes = true;
+        }
+      } catch (e) {
+        currencyInfo = await this.makeRequestWithSwitchedCode(
+          currencies,
+          url.toString(),
+          priceBySymbolData.symbolQuery,
+          priceBySymbolData.symbolPattern,
+        );
+        switchedCodes = true;
+      }
 
-    let awaitedResponse;
-    try {
-      awaitedResponse = await Promise.all(pendingRequests);
-    } catch (e) {
-      throw new Exceptions.GetRatesFailed({ ...dtoIn });
+      rates.push({
+        exchangeName: exchange.name,
+        rate: this.getRate(
+          currencyInfo.data.price || currencyInfo.data?.data?.price,
+          switchedCodes,
+        ),
+      });
     }
 
-    return awaitedResponse.map((response) => {
-      const requestBaseUri = new URL(response.config.url).host;
-      const exchange = exchanges.find((exchange) =>
-        exchange.exchangeApiInfo.baseUri.includes(requestBaseUri),
-      );
-      return {
-        rate: response.data.price || response.data.data?.price,
-        exchangeName: exchange?.name,
-      };
-    });
+    return rates;
   }
+
+  async estimate(dtoIn: AppEstimateDto) {}
 }

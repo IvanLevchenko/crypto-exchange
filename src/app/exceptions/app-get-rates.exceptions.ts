@@ -4,8 +4,7 @@ const useCase = "app/getRates";
 
 class GetRatesFailed extends HttpException {
   constructor(params) {
-    const message =
-      "Getting rates failed. Possibly you are trying to get rates with non-existing currency codes. If codes are correct, try to switch baseCurrency and quoteCurrency.";
+    const message = "Getting rates failed. Check currency codes in dtoIn.";
     const response = {
       useCase,
       message,
@@ -16,4 +15,18 @@ class GetRatesFailed extends HttpException {
   }
 }
 
-export default { GetRatesFailed };
+class CurrencyCodesAreEqual extends HttpException {
+  constructor(params) {
+    const message =
+      "You are using same currency codes both for base and quote currencies.";
+    const response = {
+      useCase,
+      message,
+      statusCode: HttpStatus.BAD_REQUEST,
+      params,
+    };
+    super(response, HttpStatus.BAD_REQUEST);
+  }
+}
+
+export default { GetRatesFailed, CurrencyCodesAreEqual };
