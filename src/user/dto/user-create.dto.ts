@@ -1,5 +1,4 @@
-import { IsArray, IsString, MinLength } from "class-validator";
-import { ExchangeData } from "../interfaces/exchange-data";
+import { IsString, MinLength } from "class-validator";
 
 export abstract class UserCreateDto {
   @IsString()
@@ -8,7 +7,4 @@ export abstract class UserCreateDto {
   @IsString()
   @MinLength(10)
   password: string;
-
-  @IsArray()
-  exchangeDataList: ExchangeData[];
 }
