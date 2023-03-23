@@ -73,10 +73,6 @@ export class UserService {
     return await this.userRepository.save(payload);
   }
 
-  async list(): Promise<User[] | []> {
-    return await this.userRepository.find();
-  }
-
   async get(dtoIn: UserGetDto): Promise<User | null> {
     return await this.userRepository.findOneBy({ ...dtoIn });
   }

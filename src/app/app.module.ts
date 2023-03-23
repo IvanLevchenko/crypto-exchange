@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule } from "@nestjs/config";
 import { HttpModule } from "nestjs-http-promise";
+import { JwtModule } from "@nestjs/jwt";
 
 import { User } from "../user/user.entity";
 import { UserModule } from "../user/user.module";
@@ -13,6 +14,7 @@ import { AppService } from "./app.service";
 
 @Module({
   imports: [
+    JwtModule,
     HttpModule,
     ConfigModule.forRoot(),
     TypeOrmModule.forFeature([Exchange]),

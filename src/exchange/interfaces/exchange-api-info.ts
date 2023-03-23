@@ -6,5 +6,10 @@ export abstract class ExchangeApiInfo {
       symbolQuery: string;
       symbolPattern: string;
     };
+    getTrades: {
+      path: string;
+      symbolQuery: string;
+      symbolPattern: string;
+    };
   };
 }

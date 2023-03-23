@@ -29,10 +29,4 @@ export class UserController {
   private async get(@Body() dtoIn: UserGetDto): Promise<User | null> {
     return this.userService.get(dtoIn);
   }
-
-  @Get("list")
-  @UseGuards(AuthGuard)
-  private async list(): Promise<User[] | []> {
-    return this.userService.list();
-  }
 }
